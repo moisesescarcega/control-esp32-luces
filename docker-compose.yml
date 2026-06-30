@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   control-luces:
-    image: php:8.2-apache-alpine
+    image: php:8.2-apache
     container_name: domotica_hub
     ports:
       - "8080:80"
