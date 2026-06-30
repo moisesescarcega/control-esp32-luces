@@ -3,7 +3,7 @@ services:
     image: php:8.2-apache
     container_name: domotica_hub
     ports:
-      - "8080:80"
+      - "8085:80"
     volumes:
       - ./src:/var/www/html
     restart: always
