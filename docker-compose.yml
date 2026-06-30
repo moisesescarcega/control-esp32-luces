@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  control-luces:
+    image: php:8.2-apache-alpine
+    container_name: domotica_hub
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+    restart: always
