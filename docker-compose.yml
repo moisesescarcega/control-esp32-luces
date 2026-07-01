@@ -1,9 +1,7 @@
 services:
   control-luces:
-    image: php:8.2-apache
+    build: .
     container_name: domotica_hub
     ports:
       - "8085:80"
-    volumes:
-      - ./src:/var/www/html
     restart: always

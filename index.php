@@ -1,13 +1,10 @@
 <?php
-// Dirección IP estática del ESP32 satélite
 define('ESP32_IP', '192.168.100.201');
 
-// Procesar el puente de comandos (Backend)
 if (isset($_GET['action'])) {
     header('Content-Type: application/json');
     $action = $_GET['action'];
     
-    // Mapeo de acciones a rutas del ESP32
     $routes = [
         'relay_on'  => '/relay/on',
         'relay_off' => '/relay/off',
@@ -21,19 +18,17 @@ if (isset($_GET['action'])) {
         exit;
     }
 
-    // Petición cURL ultra rápida con timeout estricto para no bloquear
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, 'http://' . ESP32_IP . $routes[$action]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 800); // 0.8 segundos máx para conectar
-    curl_setopt($ch, CURLOPT_TIMEOUT_MS, 1500);        // 1.5 segundos máx de espera
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 800); 
+    curl_setopt($ch, CURLOPT_TIMEOUT_MS, 1500);        
     
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
     if ($http_code == 200) {
-        // Si el ESP32 responde con JSON (en status), lo pasamos directo, si no, mandamos OK
         $json_data = json_decode($response, true);
         if ($json_data !== null) {
             echo $response;
@@ -70,10 +65,8 @@ if (isset($_GET['action'])) {
 </head>
 <body>
   <h1>💡 Panel Domótico (Hub)</h1>
-  
   <div id="error-msg" class="error-bar"></div>
 
-  <!-- FOCO RELÉ -->
   <div class="card">
     <h2>🔌 Foco (Relé)</h2>
     <button class="btn btn-on" onclick="sendCmd('relay_on')">Encender</button>
@@ -81,7 +74,6 @@ if (isset($_GET['action'])) {
     <p class="status" id="relay-status">Estado: Verificando...</p>
   </div>
 
-  <!-- TIRA LED IR -->
   <div class="card">
     <h2>🌈 Tira LED (IR)</h2>
     <button class="btn btn-on" onclick="sendCmd('ir_on')">Encender</button>
@@ -103,7 +95,6 @@ if (isset($_GET['action'])) {
           if (action === 'status' || data.relay !== undefined) {
              updateUI(data);
           } else {
-             // Si fue un comando exitoso, refrescar estado tras 200ms
              setTimeout(checkStatus, 200);
           }
         })
@@ -113,6 +104,7 @@ if (isset($_GET['action'])) {
         });
     }
 
+    // El resto del JS se mantiene idéntico
     function updateUI(data) {
       document.getElementById('relay-status').textContent = 'Estado: ' + (data.relay ? 'ON' : 'OFF');
       document.getElementById('led-status').textContent = 'Estado: ' + (data.led ? 'ON' : 'OFF');
@@ -128,9 +120,7 @@ if (isset($_GET['action'])) {
         });
     }
 
-    // Verificar estado inicial al cargar la página en Android
     checkStatus();
-    // Auto-refrescar cada 10 segundos para mantener sincronía
     setInterval(checkStatus, 10000);
   </script>
 </body>
