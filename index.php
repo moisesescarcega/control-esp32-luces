@@ -1,5 +1,5 @@
 <?php
-define('ESP32_IP', '192.168.100.201');
+define('ESP32_IP', '192.168.100.25');
 
 if (isset($_GET['action']) && $_GET['action'] === 'time') {
     header('Content-Type: text/plain');
