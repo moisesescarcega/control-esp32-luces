@@ -1,6 +1,11 @@
 <?php
 define('ESP32_IP', '192.168.100.201');
 
+if (isset($_GET['action']) && $_GET['action'] === 'time') {
+    header('Content-Type: text/plain');
+    echo time(); // Timestamp Unix del servidor
+    exit;
+}
 if (isset($_GET['action'])) {
     header('Content-Type: application/json');
     $action = $_GET['action'];
