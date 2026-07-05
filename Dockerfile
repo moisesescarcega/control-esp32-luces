@@ -17,9 +17,11 @@ COPY cron_check.php /var/www/html/cron_check.php
 RUN chown -R www-data:www-data /var/www/html
 
 # Configurar cron: ejecutar cron_check.php cada minuto
-RUN echo "* * * * * www-data php /var/www/html/cron_check.php >> /var/log/cron_check.log 2>&1" > /etc/cron.d/luces-cron \
-    && chmod 0644 /etc/cron.d/luces-cron \
-    && touch /var/log/cron_check.log
+# El log vive dentro de /var/www/html, que ya recibió chown www-data arriba
+RUN touch /var/www/html/cron_check.log && chown www-data:www-data /var/www/html/cron_check.log
+RUN echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" > /etc/cron.d/luces-cron \
+    && echo "* * * * * www-data php /var/www/html/cron_check.php >> /var/www/html/cron_check.log 2>&1" >> /etc/cron.d/luces-cron \
+    && chmod 0644 /etc/cron.d/luces-cron
 
 # Script de arranque: inicia cron y Apache juntos
 COPY start.sh /start.sh
