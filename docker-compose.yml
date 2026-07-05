@@ -4,4 +4,18 @@ services:
     container_name: domotica_hub
     ports:
       - "8085:80"
+    environment:
+      - DB_HOST=casa-pg-9pn1if
+      - DB_PORT=5432
+      - DB_NAME=casa
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - ESP32_IP=192.168.100.25
     restart: always
+    networks:
+      - dokploy-network
+      - default
+
+networks:
+  dokploy-network:
+    external: true

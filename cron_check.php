@@ -1,0 +1,104 @@
+<?php
+// Este script lo ejecuta cron cada minuto. No tiene salida HTTP, solo logs.
+require_once __DIR__ . '/db.php';
+
+define('ESP32_IP', getenv('ESP32_IP') ?: '192.168.100.25');
+
+// Coordenadas de Coyoacán, CDMX
+define('LAT', 19.35);
+define('LON', -99.16);
+
+const WEATHER_CHECK_INTERVAL_MIN = 20;
+
+function logMsg(string $msg): void {
+    echo '[' . date('Y-m-d H:i:s') . "] $msg\n";
+}
+
+function callESP32(string $path): bool {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'http://' . ESP32_IP . $path);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 1500);
+    curl_setopt($ch, CURLOPT_TIMEOUT_MS, 2500);
+    curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return $code == 200;
+}
+
+// Devuelve true si el clima actual es nublado, según Open-Meteo
+// weathercode: 0=despejado, 1-3=parcialmente nublado/nublado, >=45 niebla/lluvia/etc.
+function isCloudyNow(): ?bool {
+    $url = "https://api.open-meteo.com/v1/forecast?latitude=" . LAT .
+           "&longitude=" . LON . "&current_weather=true&timezone=America%2FMexico_City";
+
+    $ctx = stream_context_create(['http' => ['timeout' => 5]]);
+    $raw = @file_get_contents($url, false, $ctx);
+    if ($raw === false) return null;
+
+    $data = json_decode($raw, true);
+    $code = $data['current_weather']['weathercode'] ?? null;
+    if ($code === null) return null;
+
+    // 2 = parcialmente nublado, 3 = nublado. Consideramos nublado desde código >= 2.
+    return $code >= 2;
+}
+
+try {
+    $cfg = getConfig();
+} catch (Exception $e) {
+    logMsg("Error de BD: " . $e->getMessage());
+    exit(1);
+}
+
+$now = new DateTime('now', new DateTimeZone('America/Mexico_City'));
+$nowTime = $now->format('H:i');
+
+// ===== 1. Programación horaria =====
+if ($cfg['schedule_enabled']) {
+    $onTime  = substr($cfg['schedule_on_time'], 0, 5);
+    $offTime = substr($cfg['schedule_off_time'], 0, 5);
+
+    if ($nowTime === $onTime) {
+        logMsg("Hora de encendido programado ($onTime) → relay ON");
+        callESP32('/relay/on');
+    }
+    if ($nowTime === $offTime) {
+        logMsg("Hora de apagado programado ($offTime) → relay OFF");
+        callESP32('/relay/off');
+    }
+}
+
+// ===== 2. Control por clima (solo 12:00–19:00) =====
+if ($cfg['weather_check_enabled']) {
+    $hour = (int)$now->format('H');
+    $withinWindow = ($hour >= 12 && $hour < 19);
+
+    if ($withinWindow) {
+        $lastCheck = $cfg['last_weather_check'] ? new DateTime($cfg['last_weather_check'], new DateTimeZone('America/Mexico_City')) : null;
+        $minutesSince = $lastCheck ? ($now->getTimestamp() - $lastCheck->getTimestamp()) / 60 : 999;
+
+        if ($minutesSince >= WEATHER_CHECK_INTERVAL_MIN) {
+            $cloudy = isCloudyNow();
+
+            if ($cloudy !== null) {
+                $state = $cloudy ? 'nublado' : 'despejado';
+                logMsg("Clima consultado: $state");
+
+                $pdo = getDB();
+                $stmt = $pdo->prepare("UPDATE config SET last_weather_check = NOW(), last_weather_state = ? WHERE id = 1");
+                $stmt->execute([$state]);
+
+                if ($cloudy) {
+                    logMsg("Nublado detectado → relay ON");
+                    callESP32('/relay/on');
+                } elseif ($cfg['weather_auto_off']) {
+                    logMsg("Despejado y auto-apagado activo → relay OFF");
+                    callESP32('/relay/off');
+                }
+            } else {
+                logMsg("No se pudo obtener clima (Open-Meteo sin respuesta)");
+            }
+        }
+    }
+}
