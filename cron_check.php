@@ -27,7 +27,6 @@ function callESP32(string $path): bool {
 }
 
 // Devuelve true si el clima actual es nublado, según Open-Meteo
-// weathercode: 0=despejado, 1-3=parcialmente nublado/nublado, >=45 niebla/lluvia/etc.
 function isCloudyNow(): ?bool {
     $url = "https://api.open-meteo.com/v1/forecast?latitude=" . LAT .
            "&longitude=" . LON . "&current_weather=true&timezone=America%2FMexico_City";
@@ -54,22 +53,37 @@ try {
 $now = new DateTime('now', new DateTimeZone('America/Mexico_City'));
 $nowTime = $now->format('H:i');
 
-// ===== 1. Programación horaria =====
-if ($cfg['schedule_enabled']) {
-    $onTime  = substr($cfg['schedule_on_time'], 0, 5);
-    $offTime = substr($cfg['schedule_off_time'], 0, 5);
+// ===== 1. Programación horaria — RELÉ =====
+if ($cfg['relay_schedule_enabled']) {
+    $onTime  = substr($cfg['relay_schedule_on_time'], 0, 5);
+    $offTime = substr($cfg['relay_schedule_off_time'], 0, 5);
 
     if ($nowTime === $onTime) {
-        logMsg("Hora de encendido programado ($onTime) → relay ON");
+        logMsg("[Relé] Hora de encendido programado ($onTime) → relay ON");
         callESP32('/relay/on');
     }
     if ($nowTime === $offTime) {
-        logMsg("Hora de apagado programado ($offTime) → relay OFF");
+        logMsg("[Relé] Hora de apagado programado ($offTime) → relay OFF");
         callESP32('/relay/off');
     }
 }
 
-// ===== 2. Control por clima (solo 12:00–19:00) =====
+// ===== 2. Programación horaria — TIRA LED =====
+if ($cfg['led_schedule_enabled']) {
+    $onTime  = substr($cfg['led_schedule_on_time'], 0, 5);
+    $offTime = substr($cfg['led_schedule_off_time'], 0, 5);
+
+    if ($nowTime === $onTime) {
+        logMsg("[LED] Hora de encendido programado ($onTime) → ir ON");
+        callESP32('/ir/on');
+    }
+    if ($nowTime === $offTime) {
+        logMsg("[LED] Hora de apagado programado ($offTime) → ir OFF");
+        callESP32('/ir/off');
+    }
+}
+
+// ===== 3. Control por clima (solo 12:00–19:00, afecta al Relé) =====
 if ($cfg['weather_check_enabled']) {
     $hour = (int)$now->format('H');
     $withinWindow = ($hour >= 12 && $hour < 19);

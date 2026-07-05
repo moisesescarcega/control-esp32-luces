@@ -19,18 +19,27 @@ if (isset($_GET['action'])) {
         exit;
     }
 
-    // --- Config: guardar horario ---
+    // --- Config: guardar horario (device = relay|led) ---
     if ($action === 'set_schedule') {
+        $device = $_GET['device'] ?? '';
         $on  = $_GET['on']  ?? null;
         $off = $_GET['off'] ?? null;
-        if (!$on || !$off) {
+
+        $columns = [
+            'relay' => ['relay_schedule_on_time', 'relay_schedule_off_time'],
+            'led'   => ['led_schedule_on_time',   'led_schedule_off_time'],
+        ];
+
+        if (!isset($columns[$device]) || !$on || !$off) {
             http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Faltan parámetros']);
+            echo json_encode(['status' => 'error', 'message' => 'Parámetros inválidos']);
             exit;
         }
+
+        [$colOn, $colOff] = $columns[$device];
         try {
             $pdo = getDB();
-            $stmt = $pdo->prepare("UPDATE config SET schedule_on_time = ?, schedule_off_time = ? WHERE id = 1");
+            $stmt = $pdo->prepare("UPDATE config SET $colOn = ?, $colOff = ? WHERE id = 1");
             $stmt->execute([$on, $off]);
             echo json_encode(['status' => 'success']);
         } catch (Exception $e) {
@@ -44,7 +53,12 @@ if (isset($_GET['action'])) {
     if ($action === 'set_toggle') {
         $field = $_GET['field'] ?? '';
         $value = ($_GET['value'] ?? '0') === '1' ? 'true' : 'false';
-        $allowed = ['schedule_enabled', 'weather_check_enabled', 'weather_auto_off'];
+        $allowed = [
+            'relay_schedule_enabled',
+            'led_schedule_enabled',
+            'weather_check_enabled',
+            'weather_auto_off',
+        ];
         if (!in_array($field, $allowed, true)) {
             http_response_code(400);
             echo json_encode(['status' => 'error', 'message' => 'Campo inválido']);
@@ -146,17 +160,31 @@ if (isset($_GET['action'])) {
   </div>
 
   <div class="card">
-    <h2>⏰ Programación (Foco)</h2>
+    <h2>⏰ Programación Relé</h2>
     <div class="toggle-row">
-      <input type="checkbox" id="scheduleEnabled" onchange="setToggle('schedule_enabled', this.checked)">
-      <label for="scheduleEnabled">Programación activa</label>
+      <input type="checkbox" id="relayScheduleEnabled" onchange="setToggle('relay_schedule_enabled', this.checked)">
+      <label for="relayScheduleEnabled">Programación activa</label>
     </div>
     <label>Hora de encendido</label>
-    <input type="time" id="onTime" value="18:30">
+    <input type="time" id="relayOnTime" value="18:30">
     <label>Hora de apagado</label>
-    <input type="time" id="offTime" value="22:30">
-    <button class="btn btn-save" onclick="saveSchedule()">Guardar horario</button>
-    <p class="status" id="schedule-status"></p>
+    <input type="time" id="relayOffTime" value="22:30">
+    <button class="btn btn-save" onclick="saveSchedule('relay')">Guardar horario Relé</button>
+    <p class="status" id="relay-schedule-status"></p>
+  </div>
+
+  <div class="card">
+    <h2>⏰ Programación Tira LED</h2>
+    <div class="toggle-row">
+      <input type="checkbox" id="ledScheduleEnabled" onchange="setToggle('led_schedule_enabled', this.checked)">
+      <label for="ledScheduleEnabled">Programación activa</label>
+    </div>
+    <label>Hora de encendido</label>
+    <input type="time" id="ledOnTime" value="18:30">
+    <label>Hora de apagado</label>
+    <input type="time" id="ledOffTime" value="22:30">
+    <button class="btn btn-save" onclick="saveSchedule('led')">Guardar horario LED</button>
+    <p class="status" id="led-schedule-status"></p>
   </div>
 
   <div class="card">
@@ -219,27 +247,32 @@ if (isset($_GET['action'])) {
         });
     }
 
-    function saveSchedule() {
-      const on  = document.getElementById('onTime').value;
-      const off = document.getElementById('offTime').value;
-      fetch(`?action=set_schedule&on=${on}&off=${off}`)
+    function saveSchedule(device) {
+      const onEl  = document.getElementById(device === 'relay' ? 'relayOnTime'  : 'ledOnTime');
+      const offEl = document.getElementById(device === 'relay' ? 'relayOffTime' : 'ledOffTime');
+      const statusEl = document.getElementById(device === 'relay' ? 'relay-schedule-status' : 'led-schedule-status');
+      const on = onEl.value, off = offEl.value;
+
+      fetch(`?action=set_schedule&device=${device}&on=${on}&off=${off}`)
         .then(r => r.json())
         .then(data => {
-          document.getElementById('schedule-status').textContent =
-            data.status === 'success' ? `Horario guardado: ${on} – ${off}` : 'Error al guardar';
+          statusEl.textContent = data.status === 'success' ? `Horario guardado: ${on} – ${off}` : 'Error al guardar';
         })
-        .catch(() => {
-          document.getElementById('schedule-status').textContent = 'Error al guardar';
-        });
+        .catch(() => { statusEl.textContent = 'Error al guardar'; });
     }
 
     function loadConfig() {
       fetch('?action=get_config')
         .then(r => r.json())
         .then(cfg => {
-          document.getElementById('scheduleEnabled').checked = cfg.schedule_enabled;
-          document.getElementById('onTime').value  = cfg.schedule_on_time.slice(0,5);
-          document.getElementById('offTime').value = cfg.schedule_off_time.slice(0,5);
+          document.getElementById('relayScheduleEnabled').checked = cfg.relay_schedule_enabled;
+          document.getElementById('relayOnTime').value  = cfg.relay_schedule_on_time.slice(0,5);
+          document.getElementById('relayOffTime').value = cfg.relay_schedule_off_time.slice(0,5);
+
+          document.getElementById('ledScheduleEnabled').checked = cfg.led_schedule_enabled;
+          document.getElementById('ledOnTime').value  = cfg.led_schedule_on_time.slice(0,5);
+          document.getElementById('ledOffTime').value = cfg.led_schedule_off_time.slice(0,5);
+
           document.getElementById('weatherEnabled').checked = cfg.weather_check_enabled;
           document.getElementById('weatherAutoOff').checked = cfg.weather_auto_off;
           if (cfg.last_weather_state) {

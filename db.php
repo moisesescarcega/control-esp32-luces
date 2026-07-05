@@ -18,18 +18,26 @@ function getDB(): PDO {
 }
 
 // Crea la tabla de configuración si no existe, con una sola fila (id=1)
+// Horarios separados para Relé y Tira LED
 function ensureConfigTable(): void {
     $pdo = getDB();
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS config (
             id INT PRIMARY KEY DEFAULT 1,
-            schedule_on_time  TIME NOT NULL DEFAULT '18:30',
-            schedule_off_time TIME NOT NULL DEFAULT '22:30',
-            schedule_enabled  BOOLEAN NOT NULL DEFAULT false,
+
+            relay_schedule_on_time  TIME NOT NULL DEFAULT '18:30',
+            relay_schedule_off_time TIME NOT NULL DEFAULT '22:30',
+            relay_schedule_enabled  BOOLEAN NOT NULL DEFAULT false,
+
+            led_schedule_on_time  TIME NOT NULL DEFAULT '18:30',
+            led_schedule_off_time TIME NOT NULL DEFAULT '22:30',
+            led_schedule_enabled  BOOLEAN NOT NULL DEFAULT false,
+
             weather_check_enabled BOOLEAN NOT NULL DEFAULT true,
             weather_auto_off      BOOLEAN NOT NULL DEFAULT false,
             last_weather_check TIMESTAMP NULL,
             last_weather_state TEXT NULL,
+
             CONSTRAINT single_row CHECK (id = 1)
         );
     ");
