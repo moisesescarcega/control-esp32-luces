@@ -62,11 +62,6 @@ function getConfig(): array {
             led_schedule_enabled,
             weather_check_enabled,
             weather_auto_off,
-            -- last_weather_check se guarda como timestamp "naive" en hora de CDMX
-            -- (porque la sesión hace SET TIME ZONE 'America/Mexico_City' antes del NOW()).
-            -- Por eso hay que reinterpretarlo como America/Mexico_City, NO como UTC,
-            -- para obtener la época UNIX real. Interpretarlo como UTC introducía un
-            -- desfase constante de 6 horas y rompía el intervalo mínimo entre consultas.
             EXTRACT(EPOCH FROM last_weather_check AT TIME ZONE 'America/Mexico_City') as last_weather_check_epoch,
             last_weather_state
         FROM config WHERE id = 1
