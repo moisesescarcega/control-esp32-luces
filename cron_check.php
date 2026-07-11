@@ -123,7 +123,7 @@ if ($cfg['led_schedule_enabled']) {
                     callESP32('/relay/off');
                 }
             } else {
-                logMsg("No se pudo obtener clima -OpenWeatherMap sin respuesta o con error")
+                logMsg("No se pudo obtener clima OpenWeatherMap sin respuesta o con error");
                 if ($cloudy) {
                     logMsg("Nublado detectado → relay ON");
                     callESP32('/relay/on');
@@ -132,7 +132,7 @@ if ($cfg['led_schedule_enabled']) {
                     callESP32('/relay/off');
                 }
             } else {
-                logMsg("No se pudo obtener clima (Open-Meteo sin respuesta)");
+                logMsg("No se pudo obtener clima OpenWeatherMap sin respuesta");
             }
         }
     }
