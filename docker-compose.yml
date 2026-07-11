@@ -11,6 +11,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - ESP32_IP=192.168.100.25
+      - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY}
     restart: always
     networks:
       - dokploy-network
