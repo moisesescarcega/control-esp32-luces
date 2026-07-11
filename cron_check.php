@@ -102,10 +102,10 @@ if ($cfg['led_schedule_enabled']) {
     }
 }
 
-// ===== 3. Control por clima (solo 12:00-19:00, afecta al Rele) =====
+// ===== 3. Control por clima (solo 12:00-20:00, afecta al Rele) =====
 if ($cfg['weather_check_enabled']) {
     $hour = (int)$now->format('H');
-    $withinWindow = ($hour >= 12 && $hour < 19);
+    $withinWindow = ($hour >= 12 && $hour < 20);
     logMsg("Revisando control por clima. Ventana horaria (12-19h): " . ($withinWindow ? 'Si' : 'No'));
 
     if ($withinWindow) {
