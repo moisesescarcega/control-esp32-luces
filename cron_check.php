@@ -97,6 +97,15 @@ if ($cfg['led_schedule_enabled']) {
         callESP32('/ir/on');
     }
     if ($nowTime === $offTime) {
+        logMsg("[LED] Hora de apagado programado ($offTime) → ir OFF");
+        callESP32('/ir/off');
+    }
+}
+
+// ===== 3. Control por clima (solo 12:00-19:00, afecta al Rele) =====
+if ($cfg['weather_check_enabled']) {
+    $hour = (int)$now->format('H');
+    $withinWindow = ($hour >= 12 && $hour < 19);
     logMsg("Revisando control por clima. Ventana horaria (12-19h): " . ($withinWindow ? 'Si' : 'No'));
 
     if ($withinWindow) {
@@ -123,17 +132,9 @@ if ($cfg['led_schedule_enabled']) {
                     callESP32('/relay/off');
                 }
             } else {
-                logMsg("No se pudo obtener clima OpenWeatherMap sin respuesta o con error");
-                if ($cloudy) {
-                    logMsg("Nublado detectado → relay ON");
-                    callESP32('/relay/on');
-                } elseif ($cfg['weather_auto_off']) {
-                    logMsg("Despejado y auto-apagado activo → relay OFF");
-                    callESP32('/relay/off');
-                }
-            } else {
-                logMsg("No se pudo obtener clima OpenWeatherMap sin respuesta");
+                logMsg("No se pudo obtener clima (OpenWeatherMap sin respuesta o con error)");
             }
         }
     }
 }
+
