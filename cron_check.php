@@ -109,8 +109,8 @@ if ($cfg['weather_check_enabled']) {
     logMsg("Revisando control por clima. Ventana horaria (12-19h): " . ($withinWindow ? 'Si' : 'No'));
 
     if ($withinWindow) {
-        $lastCheck = $cfg['last_weather_check'] ? new DateTime($cfg['last_weather_check'], new DateTimeZone('America/Mexico_City')) : null;
-        $minutesSince = $lastCheck ? ($now->getTimestamp() - $lastCheck->getTimestamp()) / 60 : 999;
+        $lastCheckEpoch = $cfg['last_weather_check_epoch'] ?? null;
+        $minutesSince = $lastCheckEpoch ? ($now->getTimestamp() - $lastCheckEpoch) / 60 : 999;
         logMsg("Minutos desde ultima consulta: " . round($minutesSince));
 
         if ($minutesSince >= WEATHER_CHECK_INTERVAL_MIN) {

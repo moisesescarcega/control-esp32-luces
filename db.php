@@ -51,5 +51,21 @@ function ensureConfigTable(): void {
 
 function getConfig(): array {
     ensureConfigTable();
-    return getDB()->query("SELECT * FROM config WHERE id = 1")->fetch();
+    $sql = "
+        SELECT
+            id,
+            relay_schedule_on_time,
+            relay_schedule_off_time,
+            relay_schedule_enabled,
+            led_schedule_on_time,
+            led_schedule_off_time,
+            led_schedule_enabled,
+            weather_check_enabled,
+            weather_auto_off,
+            -- Extraemos la época UNIX directamente desde la BD en UTC
+            EXTRACT(EPOCH FROM last_weather_check AT TIME ZONE 'UTC') as last_weather_check_epoch,
+            last_weather_state
+        FROM config WHERE id = 1
+    ";
+    return getDB()->query($sql)->fetch();
 }
