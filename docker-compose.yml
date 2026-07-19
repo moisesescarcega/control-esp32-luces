@@ -5,9 +5,9 @@ services:
     ports:
       - "8085:80"
     environment:
-      - DB_HOST=casa-pg-9pn1if
+      - DB_HOST=${DB_HOST}
       - DB_PORT=5432
-      - DB_NAME=casa
+      - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - ESP32_IP=192.168.100.25
